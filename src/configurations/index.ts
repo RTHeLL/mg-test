@@ -10,4 +10,11 @@ export default () => ({
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE_NAME,
   },
+
+  // JWT
+  jwtSettings: {
+    signingKey: process.env.JWT_SIGNING_KEY,
+    accessTokenLifetime: process.env.JWT_ACCESS_TOKEN_LIFETIME || '5m',
+    refreshTokenLifetime: process.env.JWT_REFRESH_TOKEN_LIFETIME || '30d',
+  },
 });
