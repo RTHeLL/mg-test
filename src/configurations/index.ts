@@ -1,7 +1,7 @@
 import * as process from 'process';
 
 export default () => ({
-  server_port: process.env.SERVER_PORT || 3000,
+  serverPort: process.env.SERVER_PORT || 3000,
   database: {
     dialect: process.env.DATABASE_DIALECT,
     host: process.env.DATABASE_HOST,
