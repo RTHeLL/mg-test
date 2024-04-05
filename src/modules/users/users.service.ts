@@ -10,7 +10,7 @@ export class UsersService {
     @InjectModel(User) private readonly userRepository: typeof User,
   ) {}
 
-  async create(data: User) {
+  async create(data: Partial<User>) {
     const hashedPassword = await this.hashPassword(data.password);
 
     await this.userRepository.create({
@@ -33,9 +33,9 @@ export class UsersService {
     return this.userRepository.findByPk(id);
   }
 
-  async findOneForLogin(username: string) {
+  async findOneForLogin(emailOrPhone: string) {
     return this.userRepository.findOne({
-      where: { $or: [{ email: username }, { phoneNumber: username }] },
+      where: { $or: [{ email: emailOrPhone }, { phoneNumber: emailOrPhone }] },
     });
   }
 
