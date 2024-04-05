@@ -26,4 +26,10 @@ export class User extends Model {
 
   @Column
   lastName: string;
+
+  @Column({ defaultValue: true })
+  isActive: boolean;
+
+  @Column({ defaultValue: false })
+  isAdmin: boolean;
 }
