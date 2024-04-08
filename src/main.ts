@@ -11,20 +11,17 @@ async function createSwaggerDocument(app: INestApplication<any>) {
     .setDescription('MarketGuru Test API description')
     .setVersion('1.0')
     .addTag('MG API')
-    .addBearerAuth(
-      {
-        type: 'apiKey',
-        in: 'header',
-        name: 'Authorization',
-        bearerFormat: 'Bearer',
-        description:
-          'Полученный токен следует добавлять в каждый запрос, ' +
-          'который требует авторизацию, прибавляя к запросу заголовок ' +
-          '(http-header) ' +
-          '<code>Authorization: Bearer <токен></code>',
-      },
-      'Token',
-    )
+    .addBearerAuth({
+      type: 'apiKey',
+      in: 'header',
+      name: 'Authorization',
+      bearerFormat: 'Bearer',
+      description:
+        'Полученный токен следует добавлять в каждый запрос, ' +
+        'который требует авторизацию, прибавляя к запросу заголовок ' +
+        '(http-header) ' +
+        '<code>Authorization: Bearer <токен></code>',
+    })
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -37,7 +34,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const serverPort = configService.get('serverPort');
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   await createSwaggerDocument(app);
 
