@@ -1,7 +1,14 @@
 import { IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class SingInDto {
+/**
+ * DTO for signing in request
+ *
+ * @class SignInDtoRequest
+ * @property {string} emailOrPhone - email or phone number
+ * @property {string} password - password
+ */
+export class SignInDtoRequest {
   @ApiProperty({
     required: true,
     description: 'Почта или номер телефона',

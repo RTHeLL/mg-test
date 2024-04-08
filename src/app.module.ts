@@ -24,7 +24,9 @@ import { User } from './modules/users/models/user.model';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         synchronize: true,
-        autoLoadModels: true,
+        define: {
+          underscored: true,
+        },
         models: [User],
       }),
     }),

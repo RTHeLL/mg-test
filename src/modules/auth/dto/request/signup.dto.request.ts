@@ -2,7 +2,18 @@ import { IsEmail, IsString, IsStrongPassword } from 'class-validator';
 import { Match, IsPhoneNumber } from '@common/decorators';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class SignUpDto {
+/**
+ * DTO for signing up request
+ *
+ * @class SignUpDtoRequest
+ * @property {string} email - email
+ * @property {string} phoneNumber - phone number
+ * @property {string} password - password
+ * @property {string} passwordConfirmation - password confirmation
+ * @property {string} firstName - first name
+ * @property {string} lastName - last name
+ */
+export class SignUpDtoRequest {
   @ApiProperty({
     required: true,
     description: 'Почта',
