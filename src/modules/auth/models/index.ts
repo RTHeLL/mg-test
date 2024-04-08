@@ -1,2 +1,1 @@
-export * from './tokes/accessToken.model';
-export * from './tokes/refreshToken.model';
+export * from './refreshToken.model';
