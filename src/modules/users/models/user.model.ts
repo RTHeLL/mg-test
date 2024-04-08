@@ -19,9 +19,6 @@ export class User extends Model {
   password: string;
 
   @Column
-  registrationDate: Date;
-
-  @Column
   firstName: string;
 
   @Column

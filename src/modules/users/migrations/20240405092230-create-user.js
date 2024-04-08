@@ -25,7 +25,7 @@ module.exports = {
         allowNull: false,
         type: Sequelize.STRING,
       },
-      firs_name: {
+      first_name: {
         allowNull: false,
         type: Sequelize.STRING,
       },
