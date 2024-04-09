@@ -49,16 +49,7 @@ export class AuthService {
    * @returns {Promise<SignUpDtoResponse>} - response for creating new user
    */
   async signUp(data: SignUpDtoRequest): Promise<User> {
-    try {
-      return await this.usersService.create(data);
-    } catch (err) {
-      if (err.name == 'SequelizeUniqueConstraintError') {
-        this.logger.error(err.message);
-        throw new UnauthorizedException(
-          'Пользователь с таким email или номером телефона уже существует',
-        );
-      }
-    }
+    return await this.usersService.create(data);
   }
 
   /**
