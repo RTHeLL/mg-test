@@ -15,7 +15,7 @@ import { RefreshToken } from './models';
 import { InjectModel } from '@nestjs/sequelize';
 import { toMs } from 'ms-typescript';
 import { add } from 'date-fns';
-import { IRefreshTokenInterface } from '@auth/interfaces/refreshToken.interface';
+import { IRefreshToken } from '@auth/interfaces/refreshToken.interface';
 import { User } from '../users/models';
 import uuidToHex = require('uuid-to-hex');
 
@@ -224,18 +224,35 @@ export class AuthService {
   }
 
   /**
+   * Private method for deleting refresh token
+   *
+   * @param {string} refreshToken - refresh token
+   */
+  async deleteRefreshToken(refreshToken: string) {
+    const decodedToken = await this.decodeRefreshToken(refreshToken);
+    await this.refreshTokenRepository
+      .destroy({
+        where: {
+          jti: decodedToken.jti,
+        },
+      })
+      .catch((err) => {
+        this.logger.error(err);
+        return null;
+      });
+  }
+
+  /**
    * Private method for decoding refresh token
    *
    * @param {string} token - refresh token
-   * @returns {Promise<IRefreshTokenInterface>} - decoded refresh token
+   * @returns {Promise<IRefreshToken>} - decoded refresh token
    */
-  private async decodeRefreshToken(
-    token: string,
-  ): Promise<IRefreshTokenInterface> {
+  private async decodeRefreshToken(token: string): Promise<IRefreshToken> {
     try {
       return await this.jwtService.verifyAsync(token);
     } catch (error) {
-      throw new UnauthorizedException('Неверный токен обновления');
+      throw new UnauthorizedException();
     }
   }
 }

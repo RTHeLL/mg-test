@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpStatus,
   Post,
   Res,
@@ -18,6 +19,7 @@ import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiInternalServerErrorResponse,
+  ApiNoContentResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -31,6 +33,7 @@ import { toMs } from 'ms-typescript';
 import { add } from 'date-fns';
 import { ITokens } from '@auth/interfaces';
 import { Cookie } from '@common/decorators/cookies.decorator';
+import { REFRESH_TOKEN_COOKIE_NAME } from '@auth/config';
 
 /**
  * Controller for authorization and authentication
@@ -120,9 +123,9 @@ export class AuthController {
   @ApiBadRequestResponse({ description: 'Некорректные данные' })
   @ApiUnauthorizedResponse({ description: 'Неверный токен обновления' })
   @ApiInternalServerErrorResponse({ description: 'Внутренняя ошибка сервера' })
-  @Post('refresh')
+  @Get('refresh')
   async refresh(
-    @Cookie('refreshToken') refreshToken: string,
+    @Cookie(REFRESH_TOKEN_COOKIE_NAME) refreshToken: string,
     @Res() res: Response,
     @UserAgent() userAgent: string,
   ) {
@@ -133,6 +136,24 @@ export class AuthController {
     }
 
     this.setRefreshToken(res, tokens);
+  }
+
+  @ApiOperation({
+    summary: 'Выход',
+    operationId: 'auth.logout',
+  })
+  @ApiNoContentResponse({ description: 'Успешный выход' })
+  @ApiUnauthorizedResponse({ description: 'Неверный токен' })
+  @ApiInternalServerErrorResponse({ description: 'Внутренняя ошибка сервера' })
+  @Get('logout')
+  async logout(
+    @Cookie(REFRESH_TOKEN_COOKIE_NAME) refreshToken: string,
+    @Res() res: Response,
+  ) {
+    await this.authService.deleteRefreshToken(refreshToken);
+
+    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME);
+    res.status(HttpStatus.OK).json();
   }
 
   /**
@@ -146,7 +167,7 @@ export class AuthController {
       throw new UnauthorizedException();
     }
 
-    res.cookie('refreshToken', tokens.refreshToken, {
+    res.cookie(REFRESH_TOKEN_COOKIE_NAME, tokens.refreshToken, {
       httpOnly: true,
       sameSite: 'lax',
       expires: new Date(

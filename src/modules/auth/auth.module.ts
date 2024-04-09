@@ -9,6 +9,7 @@ import { jwtOptions } from './config';
 import { UsersService } from '../users/users.service';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { RefreshToken } from './models';
+import { GUARDS } from '@auth/guards';
 
 /**
  * Module for authorization and authentication
@@ -20,7 +21,7 @@ import { RefreshToken } from './models';
     SequelizeModule.forFeature([RefreshToken]),
     forwardRef(() => UsersModule),
   ],
-  providers: [AuthService, UsersService, ...AUTH_STRATEGIES],
+  providers: [AuthService, UsersService, ...AUTH_STRATEGIES, ...GUARDS],
   controllers: [AuthController],
   exports: [AuthService, JwtModule],
 })

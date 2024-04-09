@@ -1,1 +1,2 @@
-export * from './jwt-module-async-options';
+export * from './jwtModuleAsyncOptions';
+export * from './constants';

@@ -32,17 +32,17 @@ import { OrderDirectionEnum } from '../../common/enums';
 import { Searching } from '../../common/decorators/searching.decorator';
 import { ISearching } from '../../common/interfaces/searching.interface';
 import { IsAdminGuard } from '@auth/guards/isAdmin.guard';
-import { AuthGuard } from '@nestjs/passport';
 import { CreateUserDtoRequest } from './dto';
 import { UpdateUserDtoRequest } from './dto';
 import { PageDto } from '../../common/dto';
+import { JwtAuthGuard } from '@auth/guards';
 
 /**
  * Controller for users
  */
 @ApiTags('Пользователи')
 @Controller('users')
-@UseGuards(AuthGuard('jwtApi'))
+@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
