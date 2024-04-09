@@ -1,4 +1,12 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpStatus,
+  Post,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   SignInDtoRequest,
@@ -15,8 +23,14 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { RefreshTokenDtoRequest } from '@auth/dto/request/refreshToken.dto.request';
 import { RefreshTokenDtoResponse } from '@auth/dto/response/refreshToken.dto.response';
+import { UserAgent } from '@common/decorators/userAgent.decorator';
+import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { toMs } from 'ms-typescript';
+import { add } from 'date-fns';
+import { ITokens } from '@auth/interfaces';
+import { Cookie } from '@common/decorators/cookies.decorator';
 
 /**
  * Controller for authorization and authentication
@@ -24,7 +38,10 @@ import { RefreshTokenDtoResponse } from '@auth/dto/response/refreshToken.dto.res
 @ApiTags('Авторизация и аутентификация')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * Method for creating new user
@@ -58,6 +75,8 @@ export class AuthController {
    *
    * @fires AuthService#signIn - method for signing in
    * @param {SignInDtoRequest} data - request body
+   * @param {Response} res - response
+   * @param {string} userAgent - user agent
    * @return {Promise<SignInDtoResponse>} - tokens
    */
   @ApiOperation({
@@ -69,12 +88,18 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Неверный логин или пароль' })
   @ApiInternalServerErrorResponse({ description: 'Внутренняя ошибка сервера' })
   @Post('signin')
-  async signIn(@Body() data: SignInDtoRequest): Promise<SignInDtoResponse> {
-    const tokens = await this.authService.signIn(data);
+  async signIn(
+    @Body() data: SignInDtoRequest,
+    @Res() res: Response,
+    @UserAgent() userAgent: string,
+  ): Promise<SignInDtoResponse> {
+    const tokens = await this.authService.signIn(data, userAgent);
 
     if (!tokens) {
       throw new BadRequestException('Не удалось войти в аккаунт');
     }
+
+    this.setRefreshToken(res, tokens);
 
     return plainToInstance(SignInDtoResponse, tokens);
   }
@@ -83,8 +108,9 @@ export class AuthController {
    * Method for refreshing tokens
    *
    * @fires AuthService#refresh - method for refreshing tokens
-   * @param {RefreshTokenDtoRequest} data - request body
-   * @return {Promise<RefreshTokenDtoResponse>} - tokens
+   * @param {string} refreshToken - refresh token
+   * @param {Response} res - response
+   * @param {string} userAgent - user agent
    */
   @ApiOperation({
     summary: 'Обновление токена',
@@ -96,9 +122,46 @@ export class AuthController {
   @ApiInternalServerErrorResponse({ description: 'Внутренняя ошибка сервера' })
   @Post('refresh')
   async refresh(
-    @Body() data: RefreshTokenDtoRequest,
-  ): Promise<RefreshTokenDtoResponse> {
-    const tokens = await this.authService.refresh(data);
-    return plainToInstance(RefreshTokenDtoResponse, tokens);
+    @Cookie('refreshToken') refreshToken: string,
+    @Res() res: Response,
+    @UserAgent() userAgent: string,
+  ) {
+    const tokens = await this.authService.refresh(refreshToken, userAgent);
+
+    if (!tokens) {
+      throw new BadRequestException('Не удалось обновить токен');
+    }
+
+    this.setRefreshToken(res, tokens);
+  }
+
+  /**
+   * Private method for setting refresh token into cookies
+   *
+   * @param {Response} res - response
+   * @param {ITokens} tokens - tokens
+   */
+  private setRefreshToken(res: Response, tokens: ITokens) {
+    if (!tokens.refreshToken) {
+      throw new UnauthorizedException();
+    }
+
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      expires: new Date(
+        add(Date.now(), {
+          seconds:
+            toMs(this.configService.get('jwtSettings.refreshTokenLifetime')) /
+            1000,
+        }),
+      ),
+      secure:
+        this.configService.get('NODE_ENV', 'development') === 'production',
+      path: '/',
+    });
+    res.status(HttpStatus.CREATED).json({
+      accessToken: tokens.accessToken,
+    });
   }
 }

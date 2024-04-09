@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
 
 async function createSwaggerDocument(app: INestApplication<any>) {
   const config = new DocumentBuilder()
@@ -34,6 +35,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const serverPort = configService.get('serverPort');
 
+  app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
   await createSwaggerDocument(app);

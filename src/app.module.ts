@@ -6,6 +6,7 @@ import { SequelizeModule } from '@nestjs/sequelize';
 
 import configurations from './configurations';
 import { User } from './modules/users/models';
+import { RefreshToken } from '@auth/models';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { User } from './modules/users/models';
         define: {
           underscored: true,
         },
-        models: [User],
+        models: [RefreshToken, User],
       }),
     }),
     AuthModule,

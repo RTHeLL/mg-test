@@ -9,10 +9,11 @@ module.exports = {
       id: {
         allowNull: false,
         primaryKey: true,
-        type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4,
+        autoIncrement: true,
+        type: Sequelize.INTEGER,
       },
-      token: {
+      jti: {
+        unique: true,
         allowNull: false,
         type: Sequelize.STRING,
       },

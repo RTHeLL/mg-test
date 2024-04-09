@@ -5,8 +5,7 @@ import { DataTypes } from 'sequelize';
  * Model for refresh tokens
  *
  * @class RefreshToken
- * @property {string} id - refresh token uuid
- * @property {string} token - refresh token
+ * @property {string} id - refresh token id
  * @property {Date} exp - expiration date
  * @property {number} userId - user id
  * @property {string} userAgent - user agent
@@ -15,13 +14,16 @@ import { DataTypes } from 'sequelize';
 export class RefreshToken extends Model {
   @Column({
     primaryKey: true,
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    autoIncrement: true,
+    type: DataTypes.INTEGER,
   })
-  id: string;
+  id: number;
 
-  @Column
-  token: string;
+  @Column({
+    type: DataTypes.STRING,
+    unique: true,
+  })
+  jti: string;
 
   @Column
   exp: Date;

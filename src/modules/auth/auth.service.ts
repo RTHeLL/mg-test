@@ -15,9 +15,9 @@ import { RefreshToken } from './models';
 import { InjectModel } from '@nestjs/sequelize';
 import { toMs } from 'ms-typescript';
 import { add } from 'date-fns';
-import { RefreshTokenDtoRequest } from '@auth/dto/request/refreshToken.dto.request';
 import { IRefreshTokenInterface } from '@auth/interfaces/refreshToken.interface';
 import { User } from '../users/models';
+import uuidToHex = require('uuid-to-hex');
 
 /**
  * Service for authorization and authentication
@@ -56,14 +56,16 @@ export class AuthService {
    * Method for authorization
    *
    * @param {SignInDtoRequest} data - data for authorization
+   * @param {string} userAgent - user agent
    * @returns {Promise<ITokens>} - response for authorization
    */
-  async signIn(data: SignInDtoRequest): Promise<ITokens> {
+  async signIn(data: SignInDtoRequest, userAgent: string): Promise<ITokens> {
     const user = await this.usersService
       .findOneForLogin(data.emailOrPhone)
       .catch((err) => {
         this.logger.error(
           `signIn: ${err}\n
+          userAgent: ${userAgent}\n
           data: ${JSON.stringify(data)}\n
           message: ${err.message}`,
         );
@@ -74,45 +76,52 @@ export class AuthService {
       throw new UnauthorizedException('Неверный логин или пароль');
     }
 
-    const accessToken = await this.getAccessToken(user.id, user.isAdmin);
-    const refreshToken = await this.getRefreshToken(user.id, user.isAdmin);
-
-    return {
-      accessToken,
-      refreshToken,
-    };
+    return await this.getTokens(user.id, user.isAdmin, userAgent);
   }
 
   /**
    * Method for refreshing tokens
    *
-   * @param {RefreshTokenDtoRequest} data - data for refreshing tokens
    * @returns {Promise<ITokens>} - response for refreshing tokens
+   * @param {string} refreshToken - refresh token
+   * @param {string} userAgent - user agent
    */
-  async refresh(data: RefreshTokenDtoRequest): Promise<ITokens> {
-    const decodedToken = await this.decodeRefreshToken(data.refreshToken);
+  async refresh(refreshToken: string, userAgent: string): Promise<ITokens> {
+    const decodedToken = await this.decodeRefreshToken(refreshToken);
 
-    // TODO: понять, почему пишет, что модель не подключена
-    // const refreshToken = await this.refreshTokenRepository
-    //   .findOne({ where: { tokenId: decodedToken.tokenId } })
-    //   .catch((err) => {
-    //     this.logger.error(err);
-    //     return null;
-    //   });
-    //
-    // if (!refreshToken) {
-    //   throw new UnauthorizedException('Неверный токен обновления');
-    // }
+    const refreshTokenObj = await this.refreshTokenRepository
+      .findOne({ where: { jti: decodedToken.jti } })
+      .catch((err) => {
+        this.logger.error(err);
+        return null;
+      });
+
+    await this.refreshTokenRepository.destroy({
+      where: { jti: decodedToken.jti },
+    });
+
+    if (!refreshTokenObj || new Date(refreshTokenObj.exp) < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    return await this.getTokens(
+      decodedToken.userId,
+      decodedToken.isAdmin,
+      userAgent,
+    );
+  }
+
+  private async getTokens(
+    userId: number,
+    isAdmin: boolean,
+    userAgent: string,
+  ): Promise<ITokens> {
+    const accessToken = await this.getAccessToken(userId, isAdmin);
+    const refreshToken = await this.getRefreshToken(userId, isAdmin, userAgent);
 
     return {
-      accessToken: await this.getAccessToken(
-        decodedToken.userId,
-        decodedToken.isAdmin,
-      ),
-      refreshToken: await this.getRefreshToken(
-        decodedToken.userId,
-        decodedToken.isAdmin,
-      ),
+      accessToken,
+      refreshToken,
     };
   }
 
@@ -128,6 +137,7 @@ export class AuthService {
     isAdmin: boolean,
   ): Promise<string> {
     return await this.jwtService.signAsync({
+      tokenType: 'access',
       id: userId,
       isAdmin: isAdmin,
     });
@@ -138,36 +148,77 @@ export class AuthService {
    *
    * @param {number} userId - user id
    * @param {boolean} isAdmin - user is admin
+   * @param {string} userAgent - user agent
    * @returns {Promise<string>} - refresh token
    */
   private async getRefreshToken(
     userId: number,
     isAdmin: boolean,
+    userAgent: string,
   ): Promise<string> {
-    const tokenId = v4();
+    const jti = uuidToHex(v4());
+
     const refreshToken = await this.jwtService.signAsync(
-      { userId: userId, isAdmin: isAdmin, tokenId: tokenId },
-      { expiresIn: this.configService.get('jwtSettings.refreshTokenLifetime') },
+      {
+        tokenType: 'refresh',
+        userId: userId,
+        isAdmin: isAdmin,
+        jti: jti,
+      },
+      {
+        expiresIn: this.configService.get('jwtSettings.refreshTokenLifetime'),
+      },
     );
 
-    // TODO: понять, почему пишет, что модель не подключена
-    // await this.refreshTokenRepository
-    //   .create({
-    //     id: tokenId,
-    //     userId: userId,
-    //     token: refreshToken,
-    //     exp: new Date(
-    //       add(Date.now(), {
-    //         seconds:
-    //           toMs(this.configService.get('jwtSettings.refreshTokenLifetime')) /
-    //           1000,
-    //       }),
-    //     ),
-    //   })
-    //   .catch((err) => {
-    //     this.logger.error(err);
-    //     return null;
-    //   });
+    const refreshTokenObj = await this.refreshTokenRepository
+      .findOne({ where: { userId: userId, userAgent: userAgent } })
+      .catch((err) => {
+        this.logger.error(err);
+        return null;
+      });
+
+    if (refreshTokenObj) {
+      await this.refreshTokenRepository
+        .update(
+          {
+            jti: jti,
+            token: refreshToken,
+            exp: new Date(
+              add(Date.now(), {
+                seconds:
+                  toMs(
+                    this.configService.get('jwtSettings.refreshTokenLifetime'),
+                  ) / 1000,
+              }),
+            ),
+          },
+          { where: { id: refreshTokenObj.id } },
+        )
+        .catch((err) => {
+          this.logger.error(err);
+          return null;
+        });
+    } else {
+      await this.refreshTokenRepository
+        .create({
+          jti: jti,
+          token: refreshToken,
+          userId: userId,
+          userAgent: userAgent,
+          exp: new Date(
+            add(Date.now(), {
+              seconds:
+                toMs(
+                  this.configService.get('jwtSettings.refreshTokenLifetime'),
+                ) / 1000,
+            }),
+          ),
+        })
+        .catch((err) => {
+          this.logger.error(err);
+          return null;
+        });
+    }
 
     return refreshToken;
   }

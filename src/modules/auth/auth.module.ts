@@ -17,8 +17,8 @@ import { RefreshToken } from './models';
   imports: [
     PassportModule,
     JwtModule.registerAsync(jwtOptions()),
-    forwardRef(() => UsersModule),
     SequelizeModule.forFeature([RefreshToken]),
+    forwardRef(() => UsersModule),
   ],
   providers: [AuthService, UsersService, ...AUTH_STRATEGIES],
   controllers: [AuthController],

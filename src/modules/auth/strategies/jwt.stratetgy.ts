@@ -35,6 +35,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwtApi') {
    * @returns {Promise<any>} - user
    */
   async validate(payload: any) {
+    if (payload.tokenType !== 'access') {
+      throw new UnauthorizedException();
+    }
+
     // Проверка именно через БД,
     // так как если проверять просто наличие userId в payload,
     // то пользователь, который удален из БД будет иметь доступ пока не умрет токен
