@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsString, IsStrongPassword } from 'class-validator';
 import { IsPhoneNumber, Match } from '@common/decorators';
 
@@ -14,13 +14,12 @@ import { IsPhoneNumber, Match } from '@common/decorators';
  * @property {string} lastName - Фамилия пользователя
  */
 export class CreateUserDtoRequest {
-  @ApiProperty({
-    required: true,
+  @ApiPropertyOptional({
     description: 'Почта',
     example: 'mail@example.com',
   })
   @IsEmail({}, { message: 'Некорректный email' })
-  email: string;
+  email?: string;
 
   @ApiProperty({
     required: true,

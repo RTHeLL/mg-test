@@ -1,6 +1,11 @@
-import { IsEmail, IsString, IsStrongPassword } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsStrongPassword,
+} from 'class-validator';
 import { Match, IsPhoneNumber } from '@common/decorators';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * DTO for signing up request
@@ -14,13 +19,13 @@ import { ApiProperty } from '@nestjs/swagger';
  * @property {string} lastName - last name
  */
 export class SignUpDtoRequest {
-  @ApiProperty({
-    required: true,
+  @ApiPropertyOptional({
     description: 'Почта',
     example: 'mail@example.com',
   })
+  @IsOptional()
   @IsEmail({}, { message: 'Некорректный email' })
-  email: string;
+  email?: string;
 
   @ApiProperty({
     required: true,

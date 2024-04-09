@@ -48,7 +48,7 @@ export class UsersService {
     } catch (err) {
       if (err.name == 'SequelizeUniqueConstraintError') {
         throw new BadRequestException(
-          'Пользователь с таким email или номером телефона уже существует',
+          'Пользователь с таким номером телефона уже существует',
         );
       }
     }
