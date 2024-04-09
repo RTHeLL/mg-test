@@ -9,7 +9,9 @@ import * as cookieParser from 'cookie-parser';
 async function createSwaggerDocument(app: INestApplication<any>) {
   const config = new DocumentBuilder()
     .setTitle('MarketGuru Test')
-    .setDescription('<img src="https://static.wikia.nocookie.net/6b513aac-f732-4648-a6a4-63d74e4aa59a" alt="Хто я?">')
+    .setDescription(
+      '<img src="https://static.wikia.nocookie.net/6b513aac-f732-4648-a6a4-63d74e4aa59a" alt="Хто я?" width="100%" height="600">',
+    )
     .setVersion('1.0')
     .addTag('MG API')
     .addBearerAuth({
