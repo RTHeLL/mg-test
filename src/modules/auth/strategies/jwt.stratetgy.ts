@@ -4,12 +4,11 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
 
-// TODO: доделать
 /**
  * Jwt strategy
  */
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwtApi') {
   private readonly logger = new Logger(JwtStrategy.name);
 
   /**
@@ -36,12 +35,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @returns {Promise<any>} - user
    */
   async validate(payload: any) {
-    const user = this.usersService
-      .findOneForLogin(payload.username)
-      .catch((err) => {
-        this.logger.error(err);
-        return null;
-      });
+    // Проверка именно через БД,
+    // так как если проверять просто наличие userId в payload,
+    // то пользователь, который удален из БД будет иметь доступ пока не умрет токен
+    const user = this.usersService.findOne(payload.userId).catch((err) => {
+      this.logger.error(err);
+      return null;
+    });
 
     if (!user) {
       throw new UnauthorizedException();
