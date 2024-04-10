@@ -39,7 +39,7 @@ import { REFRESH_TOKEN_COOKIE_NAME } from '@auth/config';
  * Controller for authorization and authentication
  */
 @ApiTags('Авторизация и аутентификация')
-@Controller('auth')
+@Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(
     private readonly configService: ConfigService,
