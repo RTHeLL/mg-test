@@ -16,6 +16,9 @@ export class IsAdminGuard implements CanActivate {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
+    // Такой подход не дает возможности налету проверить права админа,
+    // так как нужно пересоздать токен.
+    // Лучше сделать проверку через БД, чтобы всегда было актуально.
     const request = context.switchToHttp().getRequest();
 
     return request.user.isAdmin;

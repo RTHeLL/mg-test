@@ -30,10 +30,10 @@ export class User extends Model {
   @Column
   password: string;
 
-  @Column
+  @Column({ allowNull: true })
   firstName: string;
 
-  @Column
+  @Column({ allowNull: true })
   lastName: string;
 
   @Column({ defaultValue: true })

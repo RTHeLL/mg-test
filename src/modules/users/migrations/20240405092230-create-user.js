@@ -25,11 +25,11 @@ module.exports = {
         type: Sequelize.STRING,
       },
       first_name: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.STRING,
       },
       last_name: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.STRING,
       },
       is_active: {

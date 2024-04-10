@@ -61,7 +61,7 @@ export class AuthService {
    */
   async signIn(data: SignInDtoRequest, userAgent: string): Promise<ITokens> {
     const user = await this.usersService
-      .findOneForLogin(data.emailOrPhone)
+      .findOneByEmailOrPhone(data.emailOrPhone)
       .catch((err) => {
         this.logger.error(
           `signIn: ${err}\n
@@ -138,7 +138,8 @@ export class AuthService {
   ): Promise<string> {
     return await this.jwtService.signAsync({
       tokenType: 'access',
-      id: userId,
+      jti: await this.getJti(),
+      userId: userId,
       isAdmin: isAdmin,
     });
   }
@@ -156,7 +157,7 @@ export class AuthService {
     isAdmin: boolean,
     userAgent: string,
   ): Promise<string> {
-    const jti = uuidToHex(v4());
+    const jti = await this.getJti();
 
     const refreshToken = await this.jwtService.signAsync(
       {
@@ -254,5 +255,14 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException();
     }
+  }
+
+  /**
+   * Private method for getting jti
+   *
+   * @returns {string} - jti
+   */
+  private async getJti(): Promise<string> {
+    return uuidToHex(v4());
   }
 }

@@ -37,6 +37,12 @@ export class UsersService {
   async create(data: Partial<User>): Promise<User> {
     const hashedPassword = await this.hashPassword(data.password);
 
+    if (data.email && !(await this.isUniqueEmail(data.email))) {
+      throw new BadRequestException(
+        'Пользователь с таким email уже существует',
+      );
+    }
+
     try {
       return await this.userRepository.create({
         email: data.email,
@@ -61,7 +67,13 @@ export class UsersService {
    * @returns {Promise<number>} - number of deleted rows
    */
   async remove(id: number): Promise<number> {
-    return this.userRepository.destroy({ where: { id } });
+    const count = await this.userRepository.destroy({ where: { id } });
+
+    if (!count) {
+      throw new BadRequestException('Пользователь не найден');
+    }
+
+    return count;
   }
 
   /**
@@ -120,12 +132,20 @@ export class UsersService {
    * @param {string} emailOrPhone - email or phone number
    * @returns {Promise<User>} - user
    */
-  async findOneForLogin(emailOrPhone: string): Promise<User> {
+  async findOneByEmailOrPhone(emailOrPhone: string): Promise<User> {
     return this.userRepository.findOne({
       where: {
         [Op.or]: [{ email: emailOrPhone }, { phoneNumber: emailOrPhone }],
       },
     });
+  }
+
+  async isUniqueEmail(email: string): Promise<boolean> {
+    return await this.userRepository
+      .count({ where: { email: email } })
+      .then((count) => {
+        return count == 0;
+      });
   }
 
   /**

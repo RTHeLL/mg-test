@@ -58,20 +58,20 @@ export class SignUpDtoRequest {
   passwordConfirmation!: string;
 
   @IsString()
-  @ApiProperty({
-    required: false,
+  @ApiPropertyOptional({
     description: 'Имя',
     example: 'Иван',
   })
+  @IsOptional()
   @IsString()
   firstName?: string;
 
   @IsString()
-  @ApiProperty({
-    required: false,
+  @ApiPropertyOptional({
     description: 'Фамилия',
     example: 'Иванов',
   })
+  @IsOptional()
   @IsString()
   lastName?: string;
 }
