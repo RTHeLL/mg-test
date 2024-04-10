@@ -36,7 +36,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @returns {Promise<any>} - user
    */
   async validate(payload: IJwtPayload) {
-    if (payload.tokenType !== 'access' || !payload?.userId) {
+    // Данный подход проверки активности пользователя имеет свой недостаток,
+    // потому что если отключить аккаунт, то нужно ждать перегенерации токена
+    if (
+      payload.tokenType !== 'access' ||
+      !payload?.userId ||
+      !payload?.isActive
+    ) {
       throw new UnauthorizedException();
     }
 

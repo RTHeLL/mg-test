@@ -15,9 +15,9 @@ import { RefreshToken } from './models';
 import { InjectModel } from '@nestjs/sequelize';
 import { toMs } from 'ms-typescript';
 import { add } from 'date-fns';
-import { IRefreshToken } from '@auth/interfaces/refreshToken.interface';
 import { User } from '../users/models';
 import uuidToHex = require('uuid-to-hex');
+import { IJwtPayload } from '@auth/interfaces/jwtPayload.interface';
 
 /**
  * Service for authorization and authentication
@@ -76,7 +76,12 @@ export class AuthService {
       throw new UnauthorizedException('Неверный логин или пароль');
     }
 
-    return await this.getTokens(user.id, user.isAdmin, userAgent);
+    return await this.getTokens(
+      user.id,
+      user.isAdmin,
+      user.isActive,
+      userAgent,
+    );
   }
 
   /**
@@ -88,6 +93,18 @@ export class AuthService {
    */
   async refresh(refreshToken: string, userAgent: string): Promise<ITokens> {
     const decodedToken = await this.decodeRefreshToken(refreshToken);
+
+    const user = await this.usersService
+      .findOne(decodedToken?.userId)
+      .catch((err) => {
+        this.logger.error(
+          `refresh: ${err}\n
+          userAgent: ${userAgent}\n
+          data: ${JSON.stringify(decodedToken)}\n
+          message: ${err.message}`,
+        );
+        throw new InternalServerErrorException('Внутренняя ошибка сервера');
+      });
 
     const refreshTokenObj = await this.refreshTokenRepository
       .findOne({ where: { jti: decodedToken.jti } })
@@ -105,8 +122,9 @@ export class AuthService {
     }
 
     return await this.getTokens(
-      decodedToken.userId,
-      decodedToken.isAdmin,
+      user.id,
+      user.isAdmin,
+      user.isActive,
       userAgent,
     );
   }
@@ -114,10 +132,16 @@ export class AuthService {
   private async getTokens(
     userId: number,
     isAdmin: boolean,
+    isActive: boolean,
     userAgent: string,
   ): Promise<ITokens> {
-    const accessToken = await this.getAccessToken(userId, isAdmin);
-    const refreshToken = await this.getRefreshToken(userId, isAdmin, userAgent);
+    const accessToken = await this.getAccessToken(userId, isAdmin, isActive);
+    const refreshToken = await this.getRefreshToken(
+      userId,
+      isAdmin,
+      isActive,
+      userAgent,
+    );
 
     return {
       accessToken,
@@ -130,17 +154,20 @@ export class AuthService {
    *
    * @param {number} userId - user id
    * @param {boolean} isAdmin - user is admin
+   * @param {boolean} isActive - user is active
    * @returns {Promise<string>} - access token
    */
   private async getAccessToken(
     userId: number,
     isAdmin: boolean,
+    isActive: boolean,
   ): Promise<string> {
     return await this.jwtService.signAsync({
       tokenType: 'access',
       jti: await this.getJti(),
       userId: userId,
       isAdmin: isAdmin,
+      isActive: isActive,
     });
   }
 
@@ -149,12 +176,14 @@ export class AuthService {
    *
    * @param {number} userId - user id
    * @param {boolean} isAdmin - user is admin
+   * @param {boolean} isActive - user is active
    * @param {string} userAgent - user agent
    * @returns {Promise<string>} - refresh token
    */
   private async getRefreshToken(
     userId: number,
     isAdmin: boolean,
+    isActive: boolean,
     userAgent: string,
   ): Promise<string> {
     const jti = await this.getJti();
@@ -164,6 +193,7 @@ export class AuthService {
         tokenType: 'refresh',
         userId: userId,
         isAdmin: isAdmin,
+        isActive: isActive,
         jti: jti,
       },
       {
@@ -247,9 +277,9 @@ export class AuthService {
    * Private method for decoding refresh token
    *
    * @param {string} token - refresh token
-   * @returns {Promise<IRefreshToken>} - decoded refresh token
+   * @returns {Promise<IJwtPayload>} - decoded refresh token
    */
-  private async decodeRefreshToken(token: string): Promise<IRefreshToken> {
+  private async decodeRefreshToken(token: string): Promise<IJwtPayload> {
     try {
       return await this.jwtService.verifyAsync(token);
     } catch (error) {
