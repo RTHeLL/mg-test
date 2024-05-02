@@ -77,9 +77,9 @@ export class UsersController {
   @ApiBearerAuth()
   @Get(':id')
   async findOne(
-    @Param('id', ParseIntPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
   ): Promise<UserDtoResponse> {
-    const user = await this.usersService.findOne(+id);
+    const user = await this.usersService.findOne(id);
 
     return plainToInstance(UserDtoResponse, user);
   }

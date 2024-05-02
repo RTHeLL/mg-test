@@ -1,6 +1,10 @@
 import * as _ from 'lodash';
 
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from './models';
 
@@ -70,7 +74,7 @@ export class UsersService {
     const count = await this.userRepository.destroy({ where: { id } });
 
     if (!count) {
-      throw new BadRequestException('Пользователь не найден');
+      throw new NotFoundException('Пользователь не найден');
     }
 
     return count;
@@ -133,7 +137,7 @@ export class UsersService {
    * @returns {Promise<User>} - user
    */
   async findOneByEmailOrPhone(emailOrPhone: string): Promise<User> {
-    return this.userRepository.findOne({
+    return await this.userRepository.findOne({
       where: {
         [Op.or]: [{ email: emailOrPhone }, { phoneNumber: emailOrPhone }],
       },
@@ -141,11 +145,8 @@ export class UsersService {
   }
 
   async isUniqueEmail(email: string): Promise<boolean> {
-    return await this.userRepository
-      .count({ where: { email: email } })
-      .then((count) => {
-        return count == 0;
-      });
+    const count = await this.userRepository.count({ where: { email: email } });
+    return count == 0;
   }
 
   /**
@@ -155,8 +156,8 @@ export class UsersService {
    * @param {Partial<User>} data - data for updating
    * @returns {Promise<[number, User[]]>} - number of updated rows and updated rows
    */
-  async update(id: number, data: Partial<User>): Promise<[number, User[]]> {
-    return this.userRepository.update(data, {
+  async update(id: number, data: Partial<User>): Promise<void> {
+    await this.userRepository.update(data, {
       where: { id },
       returning: true,
     });

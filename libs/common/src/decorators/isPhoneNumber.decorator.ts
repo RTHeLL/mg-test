@@ -24,12 +24,12 @@ export function IsPhoneNumber(
 
 @ValidatorConstraint({ name: 'IsPhoneNumber' })
 export class PhoneNumberConstraint implements ValidatorConstraintInterface {
-  validate(value: any, args: ValidationArguments) {
+  validate(value: string, args: ValidationArguments) {
     if (typeof value !== 'string') return false;
 
-    const validCountries = args.constraints[0];
+    const [validCountries] = args.constraints;
     const parsed = parsePhoneNumberFromString(value);
 
-    return parsed !== undefined && validCountries.includes(parsed.country);
+    return validCountries.includes(parsed?.country);
   }
 }

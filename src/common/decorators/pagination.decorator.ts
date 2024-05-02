@@ -16,8 +16,8 @@ import { ApiQuery } from '@nestjs/swagger';
 export const Pagination = createParamDecorator(
   (data, ctx: ExecutionContext): IPagination => {
     const req = ctx.switchToHttp().getRequest();
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 15;
+    const page = Number(req.query.page as string) || 1;
+    const limit = Number(req.query.limit as string) || 15;
 
     if (page < 1 || limit < 1) {
       throw new BadRequestException(
